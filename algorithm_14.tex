@@ -1,4 +1,35 @@
-\section*{B \quad ANOMALY CLASSIFICATION}
+\documentclass[border=10pt]{standalone}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{xcolor}
+
+% Custom algorithm environment that can break across pages
+\makeatletter
+\newenvironment{breakablealgorithm}[1][H]
+  {% \begin{breakablealgorithm}
+   \begin{center}
+     \refstekcounter{algorithm}% New algorithm
+     \hrule height.8pt depth0pt \kern2pt% \@fs@pre for \@fs@ruled
+     \renewcommand{\caption}[2][\relax]{% Make a new \caption
+       {\raggedright\textbf{Algorithm \thealgorithm} ##2\par}%
+       \ifx\relax##1\relax % #1 is \relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##2}%
+       \else % #1 is not \relax
+         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##1}%
+       \fi
+       \kern2pt\hrule\kern2pt
+     }
+  }{% \end{breakablealgorithm}
+     \kern2pt\hrule\relax% \@fs@post for \@fs@ruled
+   \end{center}
+  }
+\makeatother
+
+% Counter for algorithm numbering
+\newcounter{algorithm}
+\setcounter{algorithm}{13} % Start from 13 so next will be 14
+
+\begin{document}
 \begin{breakablealgorithm}
 \footnotesize
 \caption{Anomaly Classification}
@@ -103,3 +134,4 @@
 89: \textbf{return} stream\_data\_anomaly
 \end{flushleft}
 \end{breakablealgorithm}
+\end{document}
