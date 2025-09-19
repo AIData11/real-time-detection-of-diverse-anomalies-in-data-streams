@@ -50,20 +50,17 @@ A comprehensive collection of 14 algorithms for IoT anomaly detection and classi
 
 ---
 
-## 🔍 Algorithm 13: Anomaly Type Detection
+## Algorithm 13: Anomaly Type Detection
+![Algorithm 13_1](https://github.com/user-attachments/assets/664ae446-cd11-45a1-a03c-04974fb8c365)
 
-### Algorithm Visualization
-![Algorithm 13 - Anomaly Type Detection](algorithm_13.png)
+![Algorithm 13_2](https://github.com/user-attachments/assets/6e5be959-7f49-48af-ae34-672bcfbb1f9a)
 
 
-### LaTeX Source
-📄 **Available**: [`algorithm_13.tex`](algorithm_13.tex) - Full LaTeX source code for reproducible research
+---
+## Algorithm 14: Anomaly Classification
+![Algorithm 14_1](https://github.com/user-attachments/assets/6d4304d6-89cb-4605-b7e8-14d863384a8f)
 
-### Algorithm Visualization  
-![Algorithm 14 - Anomaly Classification](algorithm_14.png)
-
-### LaTeX Source
-📄 **Available**: [`algorithm_14.tex`](algorithm_14.tex) - Full LaTeX source code for reproducible research
+![Algorithm 14_2](https://github.com/user-attachments/assets/65c08787-96d8-4110-8398-902899aad32c)
 
 ---
 
