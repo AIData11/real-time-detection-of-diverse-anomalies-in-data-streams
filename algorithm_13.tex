@@ -1,0 +1,92 @@
+\section*{A \quad ANOMALY TYPE DETECTION}
+
+% Add line numbers by manually numbering each line
+\begin{breakablealgorithm}[H]
+\footnotesize
+\caption{Anomaly Type Detection}
+\begin{flushleft}
+\textbf{Require:} stream\_data\_anomaly \\
+\textbf{Ensure:} stream\_data\_anomaly with anomaly type attribute \\
+1: \textbf{for} new\_data in stream\_data\_anomaly \textbf{do} \\
+2: \hspace{0.5em} sensor\_id $\gets$ new\_data['sensor\_id'] \\
+3: \hspace{0.5em} timestamp $\gets$ new\_data['created\_at'] \\
+4: \hspace{0.5em} \textbf{if} isinstance(timestamp, str) \textbf{then} \\
+5: \hspace{1em} timestamp $\gets$ pd.to\_datetime(timestamp) \\
+6: \hspace{0.5em} \textbf{end if} \\
+7: \hspace{0.5em} new\_data.setdefault('anomaly\_type', \{\}) \\
+8: \hspace{0.5em} self.sample\_count[sensor\_id] $\gets$ self.sample\_count[sensor\_id] + 1 \\
+9: \hspace{0.5em} \textbf{if} self.sample\_count[sensor\_id] $\leq$ self.training\_window \textbf{then} \\
+10: \hspace{1em} \textbf{continue} \\
+11: \hspace{0.5em} \textbf{end if} \\
+12: \hspace{0.5em} is\_duplicated $\gets$ self.check\_duplicated\_data(sensor\_id, timestamp) \\
+13: \hspace{0.5em} is\_granularity $\gets$ self.check\_data\_granularity(sensor\_id, timestamp) \\
+14: \hspace{0.5em} \textbf{if} is\_duplicated \textbf{then} \\
+15: \hspace{1em} new\_data['anomaly\_type'] $\gets$ \{'timestamp': 'Duplicated'\} \\
+16: \hspace{1em} self.field\_updated(new\_data) \\
+17: \hspace{1em} \textbf{continue} \\
+18: \hspace{0.5em} \textbf{end if} \\
+19: \hspace{0.5em} \textbf{if} is\_granularity \textbf{then} \\
+20: \hspace{1em} new\_data['anomaly\_type'] $\gets$ \{'timestamp': 'Granularity'\} \\
+21: \hspace{1em} self.field\_updated(new\_data) \\
+22: \hspace{1em} \textbf{continue} \\
+23: \hspace{0.5em} \textbf{end if} \\
+24: \hspace{0.5em} field\_mapping $\gets$ new\_data.get('\_\_field\_mapping\_\_', \{\}) \\
+25: \hspace{0.5em} model\_anomaly $\gets$ new\_data.get('model\_anomaly', \{\}) \\
+26: \hspace{0.5em} \textbf{for} field, is\_anomaly in model\_anomaly.items() \textbf{do} \\
+27: \hspace{1em} \textbf{if} field $\in$ self.EXCLUDED\_FIELDS \textbf{then} \\
+28: \hspace{1.5em} \textbf{continue} \\
+29: \hspace{1em} \textbf{end if} \\
+30: \hspace{1em} original\_field $\gets$ field\_mapping.get(field, field) \\
+31: \hspace{1em} \textbf{if} not is\_anomaly \textbf{then} \\
+32: \hspace{1.5em} \textbf{try} \\
+33: \hspace{2em} value $\gets$ float(new\_data.get(field)) \\
+34: \hspace{2em} field\_data $\gets$ \{'value': value, 'timestamp': timestamp\} \\
+35: \hspace{2em} self.update\_windows(sensor\_id, original\_field, field\_data, is\_anomaly=False) \\
+36: \hspace{2em} self.update\_ewma\_if\_normal(sensor\_id, field, value, is\_anomaly=False) \\
+37: \hspace{1.5em} \textbf{except} (TypeError, ValueError) \\
+38: \hspace{2em} \textbf{pass} \\
+39: \hspace{1.5em} \textbf{end try} \\
+40: \hspace{1.5em} \textbf{continue} \\
+41: \hspace{1em} \textbf{end if} \\
+42: \hspace{1em} \textbf{if} self.check\_missing\_value(new\_data, field) \textbf{then} \\
+43: \hspace{1.5em} new\_data['anomaly\_type'][field] $\gets$ 'Missing' \\
+44: \hspace{1.5em} \textbf{continue} \\
+45: \hspace{1em} \textbf{end if} \\
+46: \hspace{1em} \textbf{try} \\
+47: \hspace{1.5em} value $\gets$ float(new\_data.get(field)) \\
+48: \hspace{1em} \textbf{except} (TypeError, ValueError) \\
+49: \hspace{1.5em} new\_data['anomaly\_type'][field] $\gets$ 'Non-numeric' \\
+50: \hspace{1.5em} \textbf{continue} \\
+51: \hspace{1em} \textbf{end try} \\
+52: \hspace{1em} field\_data $\gets$ \{'value': value, 'timestamp': timestamp\} \\
+53: \hspace{1em} current\_stuck\_window $\gets$ list(self.window\_stuck\_value[sensor\_id][original\_field]) + [field\_data] \\
+54: \hspace{1em} is\_stuck\_value $\gets$ self.check\_stuck\_value(sensor\_id, original\_field, current\_stuck\_window) \\
+55: \hspace{1em} is\_extreme $\gets$ self.check\_extreme\_value(sensor\_id, original\_field, value, timestamp) \\
+56: \hspace{1em} is\_drift $\gets$ self.check\_sensor\_drift(sensor\_id, original\_field, value, timestamp) \\
+57: \hspace{1em} is\_deviation $\gets$ self.check\_time\_series\_deviation(sensor\_id, original\_field, value, timestamp) \\
+58: \hspace{1em} anomaly\_detected $\gets$ False \\
+59: \hspace{1em} anomaly\_type $\gets$ None \\
+60: \hspace{1em} \textbf{if} is\_stuck\_value \textbf{then} \\
+61: \hspace{1.5em} anomaly\_type $\gets$ 'Stuck' \\
+62: \hspace{1.5em} anomaly\_detected $\gets$ True \\
+63: \hspace{1em} \textbf{else if} is\_extreme \textbf{then} \\
+64: \hspace{1.5em} anomaly\_type $\gets$ is\_extreme \\
+65: \hspace{1.5em} anomaly\_detected $\gets$ True \\
+66: \hspace{1em} \textbf{else if} is\_drift \textbf{then} \\
+67: \hspace{1.5em} anomaly\_type $\gets$ is\_drift \\
+68: \hspace{1.5em} anomaly\_detected $\gets$ True \\
+69: \hspace{1em} \textbf{else if} is\_deviation \textbf{then} \\
+70: \hspace{1.5em} anomaly\_type $\gets$ 'Deviation' \\
+71: \hspace{1.5em} anomaly\_detected $\gets$ True \\
+72: \hspace{1em} \textbf{else} \\
+73: \hspace{1.5em} anomaly\_type $\gets$ 'Undefined anomaly' \\
+74: \hspace{1.5em} anomaly\_detected $\gets$ True \\
+75: \hspace{1em} \textbf{end if} \\
+76: \hspace{1em} new\_data['anomaly\_type'][field] $\gets$ anomaly\_type \\
+77: \hspace{1em} self.update\_windows(sensor\_id, original\_field, field\_data, anomaly\_detected) \\
+78: \hspace{1em} self.update\_ewma\_if\_normal(sensor\_id, field, value, anomaly\_detected) \\
+79: \hspace{0.5em} \textbf{end for} \\
+80: \textbf{end for} \\
+81: \textbf{return} stream\_data\_anomaly
+\end{flushleft}
+\end{breakablealgorithm}

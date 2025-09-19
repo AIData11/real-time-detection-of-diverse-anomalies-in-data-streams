@@ -1,0 +1,105 @@
+\section*{B \quad ANOMALY CLASSIFICATION}
+\begin{breakablealgorithm}
+\footnotesize
+\caption{Anomaly Classification}
+\begin{flushleft}
+\textbf{Input:} stream\_data\_anomaly \\
+\textbf{Output:} stream\_data\_anomaly with anomaly classification attribute \\
+1: \textbf{for} new\_data in stream\_data\_anomaly \textbf{do} \\
+2: \hspace{0.5em} anomaly\_type\_dict $\gets$ new\_data.get('anomaly\_type', \{\}) \\
+3: \hspace{0.5em} anomaly\_classification $\gets$ \{\} \\
+4: \hspace{0.5em} sensor\_id $\gets$ new\_data.get('sensor\_id') \\
+5: \hspace{0.5em} timestamp $\gets$ pd.to\_datetime(new\_data.get('created\_at')) \\
+6: \hspace{0.5em} \textbf{for} sens\_id in list(self.history.keys()) \textbf{do} \\
+7: \hspace{1em} self.history[sens\_id] $\gets$ [i for i in self.history[sens\_id] if \\
+\hspace{1.5em} (timestamp - pd.to\_datetime(i['created\_at'])) $\leq$ timedelta(minutes=2)] \\
+8: \hspace{0.5em} \textbf{end for} \\
+9: \hspace{0.5em} self.history[sensor\_id].append(new\_data) \\
+10: \hspace{0.5em} \textbf{for} field, anomaly\_type in anomaly\_type\_dict.items() \textbf{do} \\
+11: \hspace{1em} excluded\_fields $\gets$ ['sensor\_id', 'created\_at', 'enter\_id', 'entry\_id', \\
+\hspace{1.5em} 'model\_anomaly', 'is\_anomaly', '\_\_field\_mapping\_\_', 'type of anomaly', \\
+\hspace{1.5em} 'type classification', 'type\_of\_anomaly', 'type\_classification', \\
+\hspace{1.5em} 'anomaly\_type', 'anomaly\_classification'] \\
+12: \hspace{1em} \textbf{if} field $\in$ excluded\_fields \textbf{then} \\
+13: \hspace{1.5em} \textbf{continue} \\
+14: \hspace{1em} \textbf{end if} \\
+15: \hspace{1em} original\_field $\gets$ new\_data.get('\_\_field\_mapping\_\_', \{\}).get(field, field) \\
+16: \hspace{1em} \textbf{if} anomaly\_type = 'Duplicated' \textbf{then} \\
+17: \hspace{1.5em} anomaly\_classification['classification'] $\gets$ 'Error' \\
+18: \hspace{1em} \textbf{else if} anomaly\_type = 'Missing' \textbf{then} \\
+19: \hspace{1.5em} check\_other\_sensors $\gets$ any(pd.isna(record.get(field)) for sens\_id, \\
+\hspace{2em} records in self.history.items() if sens\_id $\neq$ sensor\_id \\
+\hspace{2em} for record in records if field $\in$ record) \\
+20: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Uncertain" if check\_other\_sensors else "Error" \\
+21: \hspace{1em} \textbf{else if} anomaly\_type = 'Granularity' \textbf{then} \\
+22: \hspace{1.5em} anomaly\_classification['classification'] $\gets$ 'Error' \\
+23: \hspace{1em} \textbf{else if} anomaly\_type = 'Stuck' \textbf{then} \\
+24: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Error" \\
+25: \hspace{1em} \textbf{else if} anomaly\_type = 'Non-numeric' \textbf{then} \\
+26: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Error" \\
+27: \hspace{1em} \textbf{else if} 'Extreme' $\in$ anomaly\_type \textbf{then} \\
+28: \hspace{1.5em} confirmed\_by\_nearby\_sensor $\gets$ false \\
+29: \hspace{1.5em} \textbf{try} \\
+30: \hspace{2em} current\_field\_value $\gets$ float(new\_data.get(field, 0)) \\
+31: \hspace{1.5em} \textbf{except} (TypeError, ValueError) \\
+32: \hspace{2em} current\_field\_value $\gets$ null \\
+33: \hspace{1.5em} \textbf{end try} \\
+34: \hspace{1.5em} \textbf{if} current\_field\_value $\neq$ null \textbf{then} \\
+35: \hspace{2em} \textbf{for} sens\_id, records in self.history.items() \textbf{do} \\
+36: \hspace{2.5em} \textbf{if} sens\_id = sensor\_id \textbf{then} \\
+37: \hspace{3em} \textbf{continue} \\
+38: \hspace{2.5em} \textbf{end if} \\
+39: \hspace{2.5em} values\_list $\gets$ [ ] \\
+40: \hspace{2.5em} \textbf{for} record in records \textbf{do} \\
+41: \hspace{3em} \textbf{if} field $\in$ record and record.get(field) $\neq$ null \textbf{then} \\
+42: \hspace{3.5em} \textbf{try} \\
+43: \hspace{4em} value $\gets$ float(record[field]) \\
+44: \hspace{4em} \textbf{if} $\lnot$ pd.isna(value) \textbf{then} \\
+45: \hspace{4.5em} values\_list.append(value) \\
+46: \hspace{4em} \textbf{end if} \\
+47: \hspace{3.5em} \textbf{except} (TypeError, ValueError) \\
+48: \hspace{4em} \textbf{continue} \\
+49: \hspace{3.5em} \textbf{end try} \\
+50: \hspace{3em} \textbf{end if} \\
+51: \hspace{2.5em} \textbf{end for} \\
+52: \hspace{2.5em} \textbf{if} $|$values\_list$|$ $\geq$ 5 \textbf{then} \\
+53: \hspace{3em} \textbf{if} $|$values\_list$|$ > 1 \textbf{then} \\
+54: \hspace{3.5em} historical\_values $\gets$ values\_list[:-1] \\
+55: \hspace{3.5em} recent\_value $\gets$ values\_list[-1] \\
+56: \hspace{3.5em} \textbf{if} self.\_check\_extreme\_for\_classification(historical\_values, \\
+\hspace{4em} recent\_value) \textbf{then} \\
+57: \hspace{4em} confirmed\_by\_nearby\_sensor $\gets$ true \\
+58: \hspace{4em} \textbf{break} \\
+59: \hspace{3.5em} \textbf{end if} \\
+60: \hspace{3em} \textbf{end if} \\
+61: \hspace{2.5em} \textbf{end if} \\
+62: \hspace{2em} \textbf{end for} \\
+63: \hspace{1.5em} \textbf{end if} \\
+64: \hspace{1.5em} \textbf{if} 'Drift' $\in$ anomaly\_type and 'Deviation' $\in$ anomaly\_type \textbf{then} \\
+65: \hspace{2em} anomaly\_classification[field] $\gets$ "Uncertain" \\
+66: \hspace{1.5em} \textbf{else if} 'Drift' $\in$ anomaly\_type \textbf{then} \\
+67: \hspace{2em} anomaly\_classification[field] $\gets$ "Error" \\
+68: \hspace{1.5em} \textbf{else if} 'Deviation' $\in$ anomaly\_type \textbf{then} \\
+69: \hspace{2em} anomaly\_classification[field] $\gets$ "Event" \\
+70: \hspace{1.5em} \textbf{else if} confirmed\_by\_nearby\_sensor \textbf{then} \\
+71: \hspace{2em} anomaly\_classification[field] $\gets$ "Event" \\
+72: \hspace{1.5em} \textbf{else} \\
+73: \hspace{2em} anomaly\_classification[field] $\gets$ "Error" \\
+74: \hspace{1.5em} \textbf{end if} \\
+75: \hspace{1em} \textbf{else if} anomaly\_type = 'Drift' \textbf{then} \\
+76: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Uncertain" \\
+77: \hspace{1em} \textbf{else if} anomaly\_type = 'Deviation' \textbf{then} \\
+78: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Uncertain" \\
+79: \hspace{1em} \textbf{else if} anomaly\_type = 'Drift, Deviation' \textbf{then} \\
+80: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Event" \\
+81: \hspace{1em} \textbf{else if} anomaly\_type = 'Undefined anomaly' \textbf{then} \\
+82: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Uncertain" \\
+83: \hspace{1em} \textbf{else} \\
+84: \hspace{1.5em} anomaly\_classification[field] $\gets$ "Uncertain" \\
+85: \hspace{1em} \textbf{end if} \\
+86: \hspace{0.5em} \textbf{end for} \\
+87: \hspace{0.5em} new\_data['anomaly\_classification'] $\gets$ anomaly\_classification \\
+88: \textbf{end for} \\
+89: \textbf{return} stream\_data\_anomaly
+\end{flushleft}
+\end{breakablealgorithm}
